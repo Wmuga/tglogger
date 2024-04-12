@@ -7,6 +7,21 @@ import (
 	tgl "github.com/wmuga/tglogger/internal/tglogger"
 )
 
+type TgLogger interface {
+	// AddChat adds chat with given id to log info
+	AddChat(chatID int64)
+	// RemoveChat removes chat from logger
+	RemoveChat(chatID int64)
+	// Print sends message to connected chats
+	Print(level string, message string, fields ...models.Field)
+	// Info sends message to connected chats with level "info"
+	Info(message string, fields ...models.Field)
+	// Error sends message to connected chats with level "error"
+	Error(message string, fields ...models.Field)
+	// Print sends message to connected chats with level "error" and exits with code 1
+	Fatal(message string, fields ...models.Field)
+}
+
 // Int creates field with integer value
 func Int(key string, value int) models.Field {
 	return models.Field{Key: key, Int: int64(value), Type: models.FieldInt}
@@ -82,6 +97,6 @@ func Any(key string, value interface{}) models.Field {
 	return models.Field{Key: key, Interface: value, Type: models.FieldInterface}
 }
 
-func New(ctx context.Context, topic, token string, chatIDs ...int64) (models.TgLogger, error) {
+func New(ctx context.Context, topic, token string, chatIDs ...int64) (TgLogger, error) {
 	return tgl.NewTgLogger(ctx, topic, token, chatIDs...)
 }
