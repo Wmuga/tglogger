@@ -2,24 +2,14 @@ package tglogger
 
 import (
 	"context"
+	"time"
 
 	"github.com/wmuga/tglogger/internal/models"
 	tgl "github.com/wmuga/tglogger/internal/tglogger"
 )
 
 type TgLogger interface {
-	// AddChat adds chat with given id to log info
-	AddChat(chatID int64)
-	// RemoveChat removes chat from logger
-	RemoveChat(chatID int64)
-	// Print sends message to connected chats
-	Print(level string, message string, fields ...models.Field)
-	// Info sends message to connected chats with level "info"
-	Info(message string, fields ...models.Field)
-	// Error sends message to connected chats with level "error"
-	Error(message string, fields ...models.Field)
-	// Print sends message to connected chats with level "error" and exits with code 1
-	Fatal(message string, fields ...models.Field)
+	models.TgLogger
 }
 
 // Int creates field with integer value
@@ -87,6 +77,21 @@ func Float64(key string, value float64) models.Field {
 	return models.Field{Key: key, Float: value, Type: models.FieldFloat}
 }
 
+// TimeOnly create field with time only value
+func TimeOnly(key string, value time.Time) models.Field {
+	return models.Field{Key: key, Str: value.Format(time.TimeOnly), Type: models.FieldDateTime}
+}
+
+// DateOnly create field with date only value
+func DateOnly(key string, value time.Time) models.Field {
+	return models.Field{Key: key, Str: value.Format(time.DateOnly), Type: models.FieldDateTime}
+}
+
+// DateTime create field with both time and date value
+func DateTime(key string, value time.Time) models.Field {
+	return models.Field{Key: key, Str: value.Format(time.DateTime), Type: models.FieldDateTime}
+}
+
 // Error creates field with error point value
 func Error(value error) models.Field {
 	return models.Field{Key: "error", Str: value.Error(), Type: models.FieldError}
@@ -97,6 +102,7 @@ func Any(key string, value interface{}) models.Field {
 	return models.Field{Key: key, Interface: value, Type: models.FieldInterface}
 }
 
+// New creates new telegram bot logger. Connects with given token. Automaticly adds given chat IDs to send list
 func New(ctx context.Context, topic, token string, chatIDs ...int64) (TgLogger, error) {
 	return tgl.NewTgLogger(ctx, topic, token, chatIDs...)
 }

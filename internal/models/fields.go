@@ -8,8 +8,9 @@ import (
 type FieldType int
 
 type Field struct {
-	Key       string
-	Type      FieldType
+	Key  string
+	Type FieldType
+
 	Int       int64
 	Str       string
 	Float     float64
@@ -17,12 +18,15 @@ type Field struct {
 }
 
 const (
-	FieldInt FieldType = iota
+	Unknown FieldType = iota
+
+	FieldInt
 	FieldUint
 	FieldFloat
 	FieldString
-	FieldInterface
 	FieldError
+	FieldDateTime
+	FieldInterface
 )
 
 func (f Field) String() string {
@@ -43,6 +47,8 @@ func (f Field) string() string {
 		return f.Str
 	case FieldInterface:
 		return interfaceToStr(f.Interface)
+	case FieldDateTime:
+		return f.Str
 	default:
 		return ""
 	}

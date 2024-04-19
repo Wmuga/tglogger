@@ -3,6 +3,7 @@ package tglogger
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -21,35 +22,41 @@ type tgLogger struct {
 	mx *sync.RWMutex
 }
 
-func (t *tgLogger) AddChat(chatID int64) {
+func (t *tgLogger) AddChat(chatID int64) error {
 	t.mx.Lock()
 	defer t.mx.Unlock()
 	t.chats[chatID] = struct{}{}
-	t.printToChat(chatID, fmt.Sprint("Connected to ", chatID))
+	return t.printToChat(chatID, fmt.Sprint("Connected to ", chatID))
 }
 
-func (t *tgLogger) RemoveChat(chatID int64) {
+func (t *tgLogger) RemoveChat(chatID int64) error {
 	t.mx.Lock()
 	defer t.mx.Unlock()
 	delete(t.chats, chatID)
+	return nil
 }
 
 func (t *tgLogger) Fatal(message string, fields ...models.Field) {
-	t.Print("error", message, fields...)
+	err := t.Print("error", message, fields...)
+	if err != nil {
+		log.Println(err)
+	}
 	os.Exit(1)
 }
 
-func (t *tgLogger) Error(message string, fields ...models.Field) {
-	t.Print("error", message, fields...)
+func (t *tgLogger) Error(message string, fields ...models.Field) error {
+	return t.Print("error", message, fields...)
 }
 
-func (t *tgLogger) Info(message string, fields ...models.Field) {
-	t.Print("info", message, fields...)
+func (t *tgLogger) Info(message string, fields ...models.Field) error {
+	return t.Print("info", message, fields...)
 }
 
-func (t *tgLogger) Print(level string, message string, fields ...models.Field) {
+func (t *tgLogger) Print(level string, message string, fields ...models.Field) error {
 	msg := strings.Builder{}
-	msg.WriteString(fmt.Sprint("Topic: ", t.topic, "\nTime: ", time.Now().UTC(), "\nLevel: ", level, "\nMessage: ", message))
+	msg.WriteString(
+		fmt.Sprint("Topic: ", t.topic, "\nTime: ", time.Now().UTC(),
+			"\nLevel: ", level, "\nMessage: ", message))
 
 	for _, f := range fields {
 		msg.WriteRune('\n')
@@ -61,13 +68,20 @@ func (t *tgLogger) Print(level string, message string, fields ...models.Field) {
 	t.mx.RLock()
 	defer t.mx.RUnlock()
 	for k := range t.chats {
-		t.printToChat(k, msgStr)
+		if err := t.printToChat(k, msgStr); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (t *tgLogger) printToChat(chatID int64, message string) {
+func (t *tgLogger) printToChat(chatID int64, message string) error {
 	msg := tgbotapi.NewMessage(chatID, message)
-	t.bot.Send(msg)
+	_, err := t.bot.Send(msg)
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("can't send send message to chat: %d err: %w", chatID, err)
 }
 
 func NewTgLogger(ctx context.Context, topic, token string, chatIDs ...int64) (models.TgLogger, error) {
@@ -88,7 +102,11 @@ func NewTgLogger(ctx context.Context, topic, token string, chatIDs ...int64) (mo
 		logger.chats[chat] = struct{}{}
 	}
 
-	bot.Send(tgbotapi.DeleteWebhookConfig{true})
+	_, err = bot.Send(tgbotapi.DeleteWebhookConfig{DropPendingUpdates: true})
+	if err != nil {
+		return nil, err
+	}
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -107,9 +125,13 @@ func NewTgLogger(ctx context.Context, topic, token string, chatIDs ...int64) (mo
 
 				switch upd.Message.Text {
 				case "/start":
-					logger.AddChat(upd.Message.Chat.ID)
+					if err := logger.AddChat(upd.Message.Chat.ID); err != nil {
+						fmt.Println(err)
+					}
 				case "/end":
-					logger.RemoveChat(upd.Message.Chat.ID)
+					if err := logger.RemoveChat(upd.Message.Chat.ID); err != nil {
+						fmt.Println(err)
+					}
 				}
 			}
 		}

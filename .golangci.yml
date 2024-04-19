@@ -1,0 +1,17 @@
+linters:
+  enable:
+    - bodyclose
+    - decorder
+    - dupl
+    - errname
+    - gci
+    - goconst
+    - gofmt
+    - goheader
+    - lll
+    - nestif
+    - perfsprint 
+    - prealloc
+    - predeclared
+    - stylecheck
+    - unparam
