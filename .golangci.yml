@@ -10,7 +10,6 @@ linters:
     - goheader
     - lll
     - nestif
-    - perfsprint 
     - prealloc
     - predeclared
     - stylecheck
