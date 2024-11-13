@@ -102,7 +102,7 @@ func NewTgLogger(ctx context.Context, topic, token string, chatIDs ...int64) (mo
 		logger.chats[chat] = struct{}{}
 	}
 
-	_, err = bot.Send(tgbotapi.DeleteWebhookConfig{DropPendingUpdates: true})
+	_, err = bot.Request(tgbotapi.DeleteWebhookConfig{DropPendingUpdates: true})
 	if err != nil {
 		return nil, err
 	}
